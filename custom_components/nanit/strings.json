@@ -38,6 +38,7 @@
       "invalid_auth": "Invalid email or password",
       "invalid_mfa_code": "Invalid verification code",
       "invalid_ip": "Invalid IP address",
+      "invalid_url": "Invalid URL",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
@@ -51,17 +52,19 @@
     "step": {
       "init": {
         "title": "Nanit Options",
-        "description": "Select a camera to configure its local IP address.",
+        "description": "Select a camera to configure local connectivity and streaming.",
         "data": {
           "camera": "Camera"
         }
       },
       "camera_ip": {
-        "title": "Device IPs for {camera_name}",
-        "description": "Enter local IP addresses for **{camera_name}** for local-first connectivity. Leave blank to use cloud only.",
+        "title": "Local settings for {camera_name}",
+        "description": "Configure optional local connectivity for **{camera_name}**. Leave fields blank to use Nanit cloud streaming. URL templates may use `{baby_uid}` and `{camera_uid}`.",
         "data": {
           "camera_ip": "Camera IP Address",
-          "speaker_ip": "Sound & Light Machine IP Address"
+          "speaker_ip": "Sound & Light Machine IP Address",
+          "local_rtmp_publish_url": "Local RTMP publish URL",
+          "local_rtsp_stream_url": "Local RTSP stream URL"
         }
       }
     }

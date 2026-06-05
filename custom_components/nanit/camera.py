@@ -12,9 +12,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from aionanit import NanitCamera
+from aionanit.camera import RequestType, StreamIdentifier, Streaming, StreamingStatus
 
 from . import NanitConfigEntry
 from .coordinator import NanitPushCoordinator
+from .const import CONF_LOCAL_RTMP_PUBLISH_URLS, CONF_LOCAL_RTSP_STREAM_URLS
 from .entity import NanitEntity
 
 PARALLEL_UPDATES = 0
@@ -107,15 +109,24 @@ class NanitCameraEntity(NanitEntity, Camera):
     # ------------------------------------------------------------------
 
     async def stream_source(self) -> str | None:
-        """Return the RTMPS stream URL.
+        """Return the configured local relay URL or Nanit cloud RTMPS URL.
 
-        Sends PUT_STREAMING *before* returning the URL so the camera is
-        already pushing to the RTMPS ingest when HA opens the connection.
-        This eliminates the race condition where HA tries to connect before
-        the camera has started streaming.
+        When both local relay URLs are configured, this entity asks Nanit to
+        publish RTMP into the local relay, then returns the relay RTSP URL for
+        Home Assistant to consume.  Without local relay configuration, it falls
+        back to the upstream Nanit cloud RTMPS path.
         """
         if not self.is_on:
             return None
+
+        local_rtsp_stream_url = self._local_rtsp_stream_url
+        if local_rtsp_stream_url:
+            local_rtmp_publish_url = self._local_rtmp_publish_url
+            if local_rtmp_publish_url and not await self._async_start_streaming_safe(
+                local_rtmp_publish_url
+            ):
+                return None
+            return local_rtsp_stream_url
 
         if not await self._async_start_streaming_safe():
             return None
@@ -126,11 +137,35 @@ class NanitCameraEntity(NanitEntity, Camera):
             _LOGGER.warning("Failed to build RTMPS stream URL", exc_info=True)
             return None
 
-    async def _async_start_streaming_safe(self) -> bool:
+    @property
+    def _local_rtmp_publish_url(self) -> str | None:
+        """Return configured local RTMP publish URL for this camera, if any."""
+        return self._format_local_stream_url(CONF_LOCAL_RTMP_PUBLISH_URLS)
+
+    @property
+    def _local_rtsp_stream_url(self) -> str | None:
+        """Return configured local RTSP stream URL for this camera, if any."""
+        return self._format_local_stream_url(CONF_LOCAL_RTSP_STREAM_URLS)
+
+    def _format_local_stream_url(self, option_key: str) -> str | None:
+        """Format a per-camera local stream URL option."""
+        urls = self.coordinator.config_entry.options.get(option_key, {})
+        url = urls.get(self._camera.uid)
+        if not url:
+            return None
+        return url.format(
+            baby_uid=self.coordinator.baby.uid,
+            camera_uid=self._camera.uid,
+        )
+
+    async def _async_start_streaming_safe(self, rtmp_url: str | None = None) -> bool:
         """Send PUT_STREAMING with retry.  Returns True on success."""
         for attempt in range(1, _STREAM_START_ATTEMPTS + 1):
             try:
-                await self._camera.async_start_streaming()
+                if rtmp_url is None:
+                    await self._camera.async_start_streaming()
+                else:
+                    await self._async_start_streaming_to_url(rtmp_url)
                 return True
             except Exception:  # noqa: BLE001
                 if attempt < _STREAM_START_ATTEMPTS:
@@ -150,6 +185,18 @@ class NanitCameraEntity(NanitEntity, Camera):
                         exc_info=True,
                     )
         return False
+
+    async def _async_start_streaming_to_url(self, rtmp_url: str) -> None:
+        """Send PUT_STREAMING STARTED with an explicit RTMP publish URL."""
+        streaming = Streaming(
+            id=StreamIdentifier.MOBILE,
+            status=StreamingStatus.STARTED,
+            rtmp_url=rtmp_url,
+        )
+        await self._camera._send_request(  # noqa: SLF001
+            RequestType.PUT_STREAMING,
+            streaming=streaming,
+        )
 
     # ------------------------------------------------------------------
     # Snapshot (with caching)

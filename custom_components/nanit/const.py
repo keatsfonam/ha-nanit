@@ -40,6 +40,10 @@ CONF_CAMERA_IPS = "camera_ips"
 CONF_SPEAKER_UID = "speaker_uid"
 CONF_SPEAKER_IP = "speaker_ip"
 CONF_SPEAKER_IPS = "speaker_ips"
+CONF_LOCAL_RTMP_PUBLISH_URL = "local_rtmp_publish_url"
+CONF_LOCAL_RTMP_PUBLISH_URLS = "local_rtmp_publish_urls"
+CONF_LOCAL_RTSP_STREAM_URL = "local_rtsp_stream_url"
+CONF_LOCAL_RTSP_STREAM_URLS = "local_rtsp_stream_urls"
 
 # Default sound list (used when API doesn't return available_sounds)
 DEFAULT_SOUND_MACHINE_SOUNDS = (

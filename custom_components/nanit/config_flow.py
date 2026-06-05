@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+from urllib.parse import urlparse
 from typing import Any
 
 import voluptuous as vol
@@ -22,6 +23,10 @@ from aionanit import NanitAuthError, NanitClient, NanitConnectionError, NanitMfa
 from .const import (
     CONF_CAMERA_IP,
     CONF_CAMERA_IPS,
+    CONF_LOCAL_RTMP_PUBLISH_URL,
+    CONF_LOCAL_RTMP_PUBLISH_URLS,
+    CONF_LOCAL_RTSP_STREAM_URL,
+    CONF_LOCAL_RTSP_STREAM_URLS,
     CONF_MFA_CODE,
     CONF_REFRESH_TOKEN,
     CONF_SPEAKER_IP,
@@ -356,6 +361,8 @@ class NanitOptionsFlow(OptionsFlow):
         if user_input is not None:
             camera_ip = user_input.get(CONF_CAMERA_IP, "").strip()
             speaker_ip = user_input.get(CONF_SPEAKER_IP, "").strip()
+            local_rtmp_publish_url = user_input.get(CONF_LOCAL_RTMP_PUBLISH_URL, "").strip()
+            local_rtsp_stream_url = user_input.get(CONF_LOCAL_RTSP_STREAM_URL, "").strip()
 
             if camera_ip:
                 try:
@@ -368,6 +375,16 @@ class NanitOptionsFlow(OptionsFlow):
                     ipaddress.ip_address(speaker_ip)
                 except ValueError:
                     errors[CONF_SPEAKER_IP] = "invalid_ip"
+
+            if local_rtmp_publish_url:
+                parsed = urlparse(local_rtmp_publish_url)
+                if parsed.scheme != "rtmp" or not parsed.netloc:
+                    errors[CONF_LOCAL_RTMP_PUBLISH_URL] = "invalid_url"
+
+            if local_rtsp_stream_url:
+                parsed = urlparse(local_rtsp_stream_url)
+                if parsed.scheme not in {"rtsp", "rtsps"} or not parsed.netloc:
+                    errors[CONF_LOCAL_RTSP_STREAM_URL] = "invalid_url"
 
             if not errors:
                 # Merge with existing camera IPs
@@ -384,11 +401,35 @@ class NanitOptionsFlow(OptionsFlow):
                 else:
                     current_speaker_ips.pop(self._selected_camera_uid, None)
 
+                # Merge with existing local RTMP publish URLs
+                current_local_rtmp_publish_urls = dict(
+                    self.config_entry.options.get(CONF_LOCAL_RTMP_PUBLISH_URLS, {})
+                )
+                if local_rtmp_publish_url:
+                    current_local_rtmp_publish_urls[self._selected_camera_uid] = (
+                        local_rtmp_publish_url
+                    )
+                else:
+                    current_local_rtmp_publish_urls.pop(self._selected_camera_uid, None)
+
+                # Merge with existing local RTSP stream URLs
+                current_local_rtsp_stream_urls = dict(
+                    self.config_entry.options.get(CONF_LOCAL_RTSP_STREAM_URLS, {})
+                )
+                if local_rtsp_stream_url:
+                    current_local_rtsp_stream_urls[self._selected_camera_uid] = (
+                        local_rtsp_stream_url
+                    )
+                else:
+                    current_local_rtsp_stream_urls.pop(self._selected_camera_uid, None)
+
                 return self.async_create_entry(
                     title="",
                     data={
                         CONF_CAMERA_IPS: current_ips,
                         CONF_SPEAKER_IPS: current_speaker_ips,
+                        CONF_LOCAL_RTMP_PUBLISH_URLS: current_local_rtmp_publish_urls,
+                        CONF_LOCAL_RTSP_STREAM_URLS: current_local_rtsp_stream_urls,
                     },
                 )
 
@@ -398,6 +439,12 @@ class NanitOptionsFlow(OptionsFlow):
         current_speaker_ip = self.config_entry.options.get(CONF_SPEAKER_IPS, {}).get(
             self._selected_camera_uid, ""
         )
+        current_local_rtmp_publish_url = self.config_entry.options.get(
+            CONF_LOCAL_RTMP_PUBLISH_URLS, {}
+        ).get(self._selected_camera_uid, "")
+        current_local_rtsp_stream_url = self.config_entry.options.get(
+            CONF_LOCAL_RTSP_STREAM_URLS, {}
+        ).get(self._selected_camera_uid, "")
 
         # Resolve camera name for the description placeholder
         camera_name = self._selected_camera_uid
@@ -417,6 +464,14 @@ class NanitOptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_SPEAKER_IP,
                         description={"suggested_value": current_speaker_ip},
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_LOCAL_RTMP_PUBLISH_URL,
+                        description={"suggested_value": current_local_rtmp_publish_url},
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_LOCAL_RTSP_STREAM_URL,
+                        description={"suggested_value": current_local_rtsp_stream_url},
                     ): cv.string,
                 }
             ),

@@ -58,7 +58,7 @@ async def async_register_card(hass: HomeAssistant) -> None:
     )
 
     lovelace_data: LovelaceData = hass.data["lovelace"]
-    if lovelace_data.resource_mode == "yaml":
+    if getattr(lovelace_data, "resource_mode", None) == "yaml":
         _LOGGER.debug("Lovelace in YAML mode — skipping automatic card resource registration")
         return
 

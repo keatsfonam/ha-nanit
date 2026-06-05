@@ -67,7 +67,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanitConfigEntry) -> boo
     _async_remove_stale_devices(hass, entry, hub)
     _async_remove_deprecated_entities(hass, hub)
 
-    await async_register_card(hass)
+    try:
+        await async_register_card(hass)
+    except Exception:  # noqa: BLE001
+        LOGGER.warning("Failed to register Nanit Lovelace card; continuing setup", exc_info=True)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # update_listener fires for ANY entry mutation (data OR options).

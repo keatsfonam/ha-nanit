@@ -37,7 +37,7 @@
       "cannot_connect": "Failed to connect to Nanit cloud API",
       "invalid_auth": "Invalid email or password",
       "invalid_mfa_code": "Invalid verification code",
-      "invalid_ip": "Invalid IP address",
+      "invalid_ip": "Invalid IP address or hostname",
       "invalid_url": "Invalid URL",
       "unknown": "Unexpected error occurred"
     },
@@ -61,8 +61,8 @@
         "title": "Local settings for {camera_name}",
         "description": "Configure optional local connectivity for **{camera_name}**. Leave fields blank to use Nanit cloud streaming. URL templates may use `{baby_uid}` and `{camera_uid}`.",
         "data": {
-          "camera_ip": "Camera IP Address",
-          "speaker_ip": "Sound & Light Machine IP Address",
+          "camera_ip": "Camera hostname or IP address",
+          "speaker_ip": "Sound & Light Machine hostname or IP address",
           "local_rtmp_publish_url": "Local RTMP publish URL",
           "local_rtsp_stream_url": "Local RTSP stream URL"
         }

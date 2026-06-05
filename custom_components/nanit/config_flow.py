@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 from urllib.parse import urlparse
 from typing import Any
 
@@ -36,6 +37,22 @@ from .const import (
     LOGGER,
 )
 from .sanitize import display_name
+
+
+_HOSTNAME_LABEL_RE = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$")
+
+
+def _is_ip_address_or_hostname(value: str) -> bool:
+    """Return whether value is a valid IP address or DNS hostname."""
+    host = value.strip().rstrip(".")
+    if not host or len(host) > 253 or any(char.isspace() for char in host):
+        return False
+
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return all(_HOSTNAME_LABEL_RE.fullmatch(label) for label in host.split("."))
+    return True
 
 
 class NanitConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -364,17 +381,11 @@ class NanitOptionsFlow(OptionsFlow):
             local_rtmp_publish_url = user_input.get(CONF_LOCAL_RTMP_PUBLISH_URL, "").strip()
             local_rtsp_stream_url = user_input.get(CONF_LOCAL_RTSP_STREAM_URL, "").strip()
 
-            if camera_ip:
-                try:
-                    ipaddress.ip_address(camera_ip)
-                except ValueError:
-                    errors[CONF_CAMERA_IP] = "invalid_ip"
+            if camera_ip and not _is_ip_address_or_hostname(camera_ip):
+                errors[CONF_CAMERA_IP] = "invalid_ip"
 
-            if speaker_ip:
-                try:
-                    ipaddress.ip_address(speaker_ip)
-                except ValueError:
-                    errors[CONF_SPEAKER_IP] = "invalid_ip"
+            if speaker_ip and not _is_ip_address_or_hostname(speaker_ip):
+                errors[CONF_SPEAKER_IP] = "invalid_ip"
 
             if local_rtmp_publish_url:
                 parsed = urlparse(local_rtmp_publish_url)

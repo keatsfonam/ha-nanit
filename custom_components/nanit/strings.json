@@ -59,7 +59,7 @@
       },
       "camera_ip": {
         "title": "Local settings for {camera_name}",
-        "description": "Configure optional local connectivity for **{camera_name}**. Leave fields blank to use Nanit cloud streaming. URL templates may use `{baby_uid}` and `{camera_uid}`.",
+        "description": "Configure optional local connectivity for **{camera_name}**. Leave fields blank to use Nanit cloud streaming. URL templates may use the baby_uid and camera_uid tokens wrapped in braces.",
         "data": {
           "camera_ip": "Camera hostname or IP address",
           "speaker_ip": "Sound & Light Machine hostname or IP address",
